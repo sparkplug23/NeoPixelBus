@@ -481,7 +481,7 @@ public:
    * ********************************************************************************************************************************/
 
   HsbColor getHsbColor(void){
-    HsbColor hsb = HsbColor(0);
+    HsbColor hsb = HsbColor(RgbColor(0));
     hsb.H = _hue/360.0f;
     hsb.S = _sat/255.0f;
     hsb.B = _briRGB/255.0f;

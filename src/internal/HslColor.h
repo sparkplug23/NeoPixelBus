@@ -27,6 +27,8 @@ License along with NeoPixel.  If not, see
 
 #include <Arduino.h>
 
+struct Rgb48Color;
+
 // ------------------------------------------------------------------------
 // HslColor represents a color object that is represented by Hue, Saturation, Lightness
 // component values.  It contains helpful color routines to manipulate the 

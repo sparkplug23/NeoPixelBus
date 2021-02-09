@@ -25,6 +25,8 @@ License along with NeoPixel.  If not, see
 -------------------------------------------------------------------------*/
 
 #include "RgbColor.h"
+#include "RgbwColor.h"
+#include "RgbcctColor.h"
 #include "Rgb16Color.h"
 #include "Rgb48Color.h"
 #include "HslColor.h"
@@ -129,6 +131,14 @@ void RgbColor::Darken(uint8_t delta)
         B = 0;
     }
 }
+
+RgbColor::RgbColor(const RgbcctColor& color)
+{
+    R = color.R;
+    G = color.G;
+    B = color.B;
+}
+
 
 void RgbColor::Lighten(uint8_t delta)
 {
