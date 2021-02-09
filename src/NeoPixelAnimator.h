@@ -2,6 +2,7 @@
 NeoPixelAnimator provides animation timing support.
 
 Written by Michael C. Miller.
+Edited by Michael G.
 
 I invest time and resources providing this open source code,
 please support me by dontating (see https://github.com/Makuna/NeoPixelBus)
