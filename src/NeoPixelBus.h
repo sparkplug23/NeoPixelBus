@@ -59,6 +59,9 @@ License along with NeoPixel.  If not, see
 #include "internal/HtmlColor.h"
 
 #include "internal/RgbwColor.h"
+#include "internal/RgbcctColor.h"
+#include "internal/RgbcctColor_Controller.h"
+
 #include "internal/SegmentDigit.h"
 
 #include "internal/NeoColorFeatures.h"
