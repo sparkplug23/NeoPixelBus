@@ -48,7 +48,7 @@ public:
     }
 
     static const volatile uint8_t* ICACHE_RAM_ATTR FillUartFifo(uint8_t uartNum,
-        const volatile uint8_t* start,
+        const volatile uint8_t* pixels,
         const volatile uint8_t* end);
 };
 
@@ -93,14 +93,14 @@ protected:
         // clear all invert bits
         USC0(uartNum) &= ~((1 << UCDTRI) | (1 << UCRTSI) | (1 << UCTXI) | (1 << UCDSRI) | (1 << UCCTSI) | (1 << UCRXI));
 
-        if (!invert)
-        {
-            // For normal operations, 
-            // Invert the TX voltage associated with logic level so:
-            //    - A logic level 0 will generate a Vcc signal
-            //    - A logic level 1 will generate a Gnd signal
-            USC0(uartNum) |= (1 << UCTXI);
-        }
+		if (!invert)
+		{
+			// For normal operations, 
+			// Invert the TX voltage associated with logic level so:
+			//    - A logic level 0 will generate a Vcc signal
+			//    - A logic level 1 will generate a Gnd signal
+			USC0(uartNum) |= (1 << UCTXI);
+		}
     }
 };
 
@@ -142,20 +142,20 @@ public:
 class NeoEsp8266UartBase
 {
 protected:
-    const size_t    _sizeData;   // Size of '_data' buffer below
-    uint8_t* _data;        // Holds LED color values
+    size_t    _sizePixels;   // Size of '_pixels' buffer below
+    uint8_t* _pixels;        // Holds LED color values
     uint32_t _startTime;     // Microsecond count when last update started
 
-    NeoEsp8266UartBase(uint16_t pixelCount, size_t elementSize, size_t settingsSize) :
-        _sizeData(pixelCount * elementSize + settingsSize)
+    NeoEsp8266UartBase(uint16_t pixelCount, size_t elementSize)
     {
-        _data = static_cast<uint8_t*>(malloc(_sizeData));
-        memset(_data, 0x00, _sizeData);
+        _sizePixels = pixelCount * elementSize;
+        _pixels = (uint8_t*)malloc(_sizePixels);
+        memset(_pixels, 0x00, _sizePixels);
     }
 
     ~NeoEsp8266UartBase()
     {
-        free(_data);
+        free(_pixels);
     }
 
 };
@@ -168,8 +168,9 @@ protected:
 template<typename T_UARTFEATURE, typename T_UARTCONTEXT> class NeoEsp8266Uart : public NeoEsp8266UartBase
 {
 protected:
-    NeoEsp8266Uart(uint16_t pixelCount, size_t elementSize, size_t settingsSize) :
-        NeoEsp8266UartBase(pixelCount, elementSize, settingsSize)
+
+    NeoEsp8266Uart(uint16_t pixelCount, size_t elementSize) :
+        NeoEsp8266UartBase(pixelCount, elementSize)
     {
     }
 
@@ -197,8 +198,8 @@ protected:
         _startTime = micros();
 
         // Then keep filling the FIFO until done
-        const uint8_t* ptr = _data;
-        const uint8_t* end = ptr + _sizeData;
+        const uint8_t* ptr = _pixels;
+        const uint8_t* end = ptr + _sizePixels;
         while (ptr != end)
         {
             ptr = const_cast<uint8_t*>(T_UARTCONTEXT::FillUartFifo(T_UARTFEATURE::Index, ptr, end));
@@ -222,15 +223,15 @@ protected:
 template<typename T_UARTFEATURE, typename T_UARTCONTEXT> class NeoEsp8266AsyncUart : public NeoEsp8266UartBase
 {
 protected:
-    NeoEsp8266AsyncUart(uint16_t pixelCount, size_t elementSize, size_t settingsSize) :
-        NeoEsp8266UartBase(pixelCount, elementSize, settingsSize)
+    NeoEsp8266AsyncUart(uint16_t pixelCount, size_t elementSize) :
+        NeoEsp8266UartBase(pixelCount, elementSize)
     {
-        _dataSending = static_cast<uint8_t*>(malloc(_sizeData));
+        _pixelsSending = (uint8_t*)malloc(_sizePixels);
     }
 
     ~NeoEsp8266AsyncUart()
     {
-        // Remember: the UART interrupt can be sending data from _dataSending in the background
+        // Remember: the UART interrupt can be sending data from _pixelsSending in the background
         while (_context.IsSending())
         {
             yield();
@@ -238,7 +239,7 @@ protected:
         // detach context, which will disable intr, may disable ISR
         _context.Detach(T_UARTFEATURE::Index);
         
-        free(_dataSending);
+        free(_pixelsSending);
     }
 
     void ICACHE_RAM_ATTR InitializeUart(uint32_t uartBaud, bool invert)
@@ -253,8 +254,8 @@ protected:
     {
         // Instruct ESP8266 hardware uart to send the pixels asynchronously
         _context.StartSending(T_UARTFEATURE::Index, 
-            _data,
-            _data + _sizeData);
+            _pixels,
+            _pixels + _sizePixels);
 
         // Annotate when we started to send bytes, so we can calculate when we are ready to send again
         _startTime = micros();
@@ -264,17 +265,17 @@ protected:
             // copy editing to sending,
             // this maintains the contract that "colors present before will
             // be the same after", otherwise GetPixelColor will be inconsistent
-            memcpy(_dataSending, _data, _sizeData);
+            memcpy(_pixelsSending, _pixels, _sizePixels);
         }
 
         // swap so the user can modify without affecting the async operation
-        std::swap(_dataSending, _data);
+        std::swap(_pixelsSending, _pixels);
     }
 
 private:
     T_UARTCONTEXT _context;
 
-    uint8_t* _dataSending;  // Holds a copy of LED color values taken when UpdateUart began
+    uint8_t* _pixelsSending;  // Holds a copy of LED color values taken when UpdateUart began
 };
 
 class NeoEsp8266UartSpeed800KbpsBase
@@ -295,12 +296,6 @@ class NeoEsp8266UartSpeedSk6812 : public NeoEsp8266UartSpeed800KbpsBase
 {
 public:
     static const uint32_t ResetTimeUs = 80; // us between data send bursts to reset for next update
-};
-
-class NeoEsp8266UartSpeedTm1814 : public NeoEsp8266UartSpeed800KbpsBase
-{
-public:
-    static const uint32_t ResetTimeUs = 200; // us between data send bursts to reset for next update
 };
 
 // NeoEsp8266UartSpeed800Kbps contains the timing constant used to get NeoPixelBus running at 800Khz
@@ -324,21 +319,21 @@ public:
 class NeoEsp8266UartSpeedApa106
 {
 public:
-    static const uint32_t ByteSendTimeUs = 14; // us it takes to send a single pixel element at 400khz speed
-    static const uint32_t UartBaud = 2339181; // APA106 pulse cycle of 1.71us, 4 serial bytes per NeoByte
-    static const uint32_t ResetTimeUs = 50; // us between data send bursts to reset for next update
+	static const uint32_t ByteSendTimeUs = 14; // us it takes to send a single pixel element at 400khz speed
+	static const uint32_t UartBaud = 2339181; // APA106 pulse cycle of 1.71us, 4 serial bytes per NeoByte
+	static const uint32_t ResetTimeUs = 50; // us between data send bursts to reset for next update
 };
 
 class NeoEsp8266UartNotInverted
 {
 public:
-    const static bool Inverted = false;
+	const static bool Inverted = false;
 };
 
 class NeoEsp8266UartInverted
 {
 public:
-    const static bool Inverted = true;
+	const static bool Inverted = true;
 };
 
 // NeoEsp8266UartMethodBase is a light shell arround NeoEsp8266Uart or NeoEsp8266AsyncUart that
@@ -347,12 +342,12 @@ template<typename T_SPEED, typename T_BASE, typename T_INVERT>
 class NeoEsp8266UartMethodBase: public T_BASE
 {
 public:
-    NeoEsp8266UartMethodBase(uint16_t pixelCount, size_t elementSize, size_t settingsSize)
-        : T_BASE(pixelCount, elementSize, settingsSize)
+    NeoEsp8266UartMethodBase(uint16_t pixelCount, size_t elementSize)
+        : T_BASE(pixelCount, elementSize)
     {
     }
-    NeoEsp8266UartMethodBase(uint8_t pin, uint16_t pixelCount, size_t elementSize, size_t settingsSize)
-        : T_BASE(pixelCount, elementSize, settingsSize)
+    NeoEsp8266UartMethodBase(uint8_t pin, uint16_t pixelCount, size_t elementSize)
+        : T_BASE(pixelCount, elementSize)
     {
     }
 
@@ -375,6 +370,7 @@ public:
 
     void Update(bool maintainBufferConsistency)
     {
+    
         // Data latch = 50+ microsecond pause in the output stream.  Rather than
         // put a delay at the end of the function, the ending time is noted and
         // the function will simply hold off (if needed) on issuing the
@@ -388,27 +384,26 @@ public:
         this->UpdateUart(maintainBufferConsistency);
     }
 
-    uint8_t* getData() const
+    uint8_t* getPixels() const
     {
-        return this->_data;
+        return this->_pixels;
     };
 
-    size_t getDataSize() const
+    size_t getPixelsSize() const
     {
-        return this->_sizeData;
+        return this->_sizePixels;
     };
 
 private:
     uint32_t getPixelTime() const
     {
-        return (T_SPEED::ByteSendTimeUs * this->_sizeData);
+        return (T_SPEED::ByteSendTimeUs * this->_sizePixels);
     };
 };
 
 // uart 0 
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart0Ws2812xMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart0Sk6812Method;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart0Tm1814Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart0Apa106Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart0800KbpsMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart0400KbpsMethod;
@@ -421,7 +416,6 @@ typedef NeoEsp8266Uart0Sk6812Method NeoEsp8266Uart0Lc8812Method;
 // uart 1
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart1Ws2812xMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart1Sk6812Method;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart1Tm1814Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart1Apa106Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart1800KbpsMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart1400KbpsMethod;
@@ -434,7 +428,6 @@ typedef NeoEsp8266Uart1Sk6812Method NeoEsp8266Uart1Lc8812Method;
 // uart 0 async
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart0Ws2812xMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart0Sk6812Method;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart0Tm1814Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart0Apa106Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart0800KbpsMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart0400KbpsMethod;
@@ -447,7 +440,6 @@ typedef NeoEsp8266AsyncUart0Sk6812Method NeoEsp8266AsyncUart0Lc8812Method;
 // uart 1 async
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart1Ws2812xMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart1Sk6812Method;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart1Tm1814Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart1Apa106Method;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart1800KbpsMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart1400KbpsMethod;
@@ -462,7 +454,6 @@ typedef NeoEsp8266AsyncUart1Sk6812Method NeoEsp8266AsyncUart1Lc8812Method;
 // uart 0 
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart0Ws2812xInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart0Sk6812InvertedMethod;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart0Tm1814InvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart0Apa106InvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart0800KbpsInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266Uart<UartFeature0, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart0400KbpsInvertedMethod;
@@ -475,7 +466,6 @@ typedef NeoEsp8266Uart0Sk6812InvertedMethod NeoEsp8266Uart0Lc8812InvertedMethod;
 // uart 1
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart1Ws2812xInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart1Sk6812InvertedMethod;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartNotInverted> NeoEsp8266Uart1Tm1814InvertedMethod; 
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart1Apa106InvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart1800KbpsInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266Uart<UartFeature1, NeoEsp8266UartContext>, NeoEsp8266UartInverted> NeoEsp8266Uart1400KbpsInvertedMethod;
@@ -488,7 +478,6 @@ typedef NeoEsp8266Uart1Sk6812InvertedMethod NeoEsp8266Uart1Lc8812InvertedMethod;
 // uart 0 async
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart0Ws2812xInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart0Sk6812InvertedMethod;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart0Tm1814InvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart0Apa106InvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart0800KbpsInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266AsyncUart<UartFeature0, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart0400KbpsInvertedMethod;
@@ -501,7 +490,6 @@ typedef NeoEsp8266AsyncUart0Sk6812InvertedMethod NeoEsp8266AsyncUart0Lc8812Inver
 // uart 1 async
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedWs2812x, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart1Ws2812xInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedSk6812, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart1Sk6812InvertedMethod;
-typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedTm1814, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartNotInverted> NeoEsp8266AsyncUart1Tm1814InvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeedApa106, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart1Apa106InvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed800Kbps, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart1800KbpsInvertedMethod;
 typedef NeoEsp8266UartMethodBase<NeoEsp8266UartSpeed400Kbps, NeoEsp8266AsyncUart<UartFeature1, NeoEsp8266UartInterruptContext>, NeoEsp8266UartInverted> NeoEsp8266AsyncUart1400KbpsInvertedMethod;

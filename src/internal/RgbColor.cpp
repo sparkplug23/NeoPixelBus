@@ -25,25 +25,29 @@ License along with NeoPixel.  If not, see
 -------------------------------------------------------------------------*/
 
 #include "RgbColor.h"
-#include "Rgb16Color.h"
-#include "Rgb48Color.h"
+#include "RgbwColor.h"
+#include "RgbcctColor.h"
 #include "HslColor.h"
 #include "HsbColor.h"
 #include "HtmlColor.h"
-#include "RgbwColor.h"
 
-RgbColor::RgbColor(const RgbwColor& color) :
-    R(color.R),
-    G(color.G),
-    B(color.B)
+static float _CalcColor(float p, float q, float t)
 {
-};
+    if (t < 0.0f)
+        t += 1.0f;
+    if (t > 1.0f)
+        t -= 1.0f;
 
-RgbColor::RgbColor(const Rgb16Color& color)
-{
-    R = color.getR();
-    G = color.getG();
-    B = color.getB();
+    if (t < 1.0f / 6.0f)
+        return p + (q - p) * 6.0f * t;
+
+    if (t < 0.5f)
+        return q;
+
+    if (t < 2.0f / 3.0f)
+        return p + ((q - p) * (2.0f / 3.0f - t) * 6.0f);
+
+    return p;
 }
 
 RgbColor::RgbColor(const HtmlColor& color)
@@ -63,11 +67,27 @@ RgbColor::RgbColor(const HslColor& color)
     float g;
     float b;
 
-    _HslToRgb(color, &r, &g, &b);
+    float h = color.H;
+    float s = color.S;
+    float l = color.L;
 
-    R = (uint8_t)(r * Max);
-    G = (uint8_t)(g * Max);
-    B = (uint8_t)(b * Max);
+
+    if (color.S == 0.0f || color.L == 0.0f)
+    {
+        r = g = b = l; // achromatic or black
+    }
+    else 
+    {
+        float q = l < 0.5f ? l * (1.0f + s) : l + s - (l * s);
+        float p = 2.0f * l - q;
+        r = _CalcColor(p, q, h + 1.0f / 3.0f);
+        g = _CalcColor(p, q, h);
+        b = _CalcColor(p, q, h - 1.0f / 3.0f);
+    }
+
+    R = (uint8_t)(r * 255.0f);
+    G = (uint8_t)(g * 255.0f);
+    B = (uint8_t)(b * 255.0f);
 }
 
 RgbColor::RgbColor(const HsbColor& color)
@@ -76,28 +96,125 @@ RgbColor::RgbColor(const HsbColor& color)
     float g;
     float b;
 
-    _HsbToRgb(color, &r, &g, &b);
+    float h = color.H;
+    float s = color.S;
+    float v = color.B;
 
-    R = (uint8_t)(r * Max);
-    G = (uint8_t)(g * Max);
-    B = (uint8_t)(b * Max);
+    if (color.S == 0.0f)
+    {
+        r = g = b = v; // achromatic or black
+    }
+    else
+    {
+        if (h < 0.0f)
+        {
+            h += 1.0f;
+        }
+        else if (h >= 1.0f)
+        {
+            h -= 1.0f;
+        }
+        h *= 6.0f;
+        int i = (int)h;
+        float f = h - i;
+        float q = v * (1.0f - s * f);
+        float p = v * (1.0f - s);
+        float t = v * (1.0f - s * (1.0f - f));
+        switch (i)
+        {
+        case 0:
+            r = v;
+            g = t;
+            b = p;
+            break;
+        case 1:
+            r = q;
+            g = v;
+            b = p;
+            break;
+        case 2:
+            r = p;
+            g = v;
+            b = t;
+            break;
+        case 3:
+            r = p;
+            g = q;
+            b = v;
+            break;
+        case 4:
+            r = t;
+            g = p;
+            b = v;
+            break;
+        default:
+            r = v;
+            g = p;
+            b = q;
+            break;
+        }
+    }
+
+    R = (uint8_t)(r * 255.0f);
+    G = (uint8_t)(g * 255.0f);
+    B = (uint8_t)(b * 255.0f);
 }
+
+
+RgbColor::RgbColor(const RgbcctColor& color)
+{
+    R = color.R;
+    G = color.G;
+    B = color.B;
+}
+
+
+void RgbColor::Lighten(uint8_t delta)
+{
+	if (R < 255 - delta)
+	{
+		R += delta;
+	}
+	else
+	{
+		R = 255;
+	}
+
+	if (G < 255 - delta)
+	{
+		G += delta;
+	}
+	else
+	{
+		G = 255;
+	}
+
+	if (B < 255 - delta)
+	{
+		B += delta;
+	}
+	else
+	{
+		B = 255;
+	}
+}
+
 
 uint8_t RgbColor::CalculateBrightness() const
 {
-    return (uint8_t)(((uint16_t)R + (uint16_t)G + (uint16_t)B) / 3);
-}
-
-RgbColor RgbColor::Dim(uint8_t ratio) const
-{
-    // specifically avoids float math
-    return RgbColor(_elementDim(R, ratio), _elementDim(G, ratio), _elementDim(B, ratio));
-}
-
-RgbColor RgbColor::Brighten(uint8_t ratio) const
-{
-    // specifically avoids float math
-    return RgbColor(_elementBrighten(R, ratio), _elementBrighten(G, ratio), _elementBrighten(B, ratio));
+    uint8_t colorB = (uint8_t)(((uint16_t)R + (uint16_t)G + (uint16_t)B) / 3);
+    // if (WW > colorB)
+    // {
+    //     return WW;
+    // }
+    // else if (WC > colorB)
+    // {
+    //     return WC;
+    // }
+    // else
+    // {
+        return colorB;
+    // }
 }
 
 void RgbColor::Darken(uint8_t delta)
@@ -128,43 +245,47 @@ void RgbColor::Darken(uint8_t delta)
     {
         B = 0;
     }
+
 }
 
-void RgbColor::Lighten(uint8_t delta)
+
+//DarkenDivided
+//creates a non linear dimming (2) 100 50 25 12 6 3 2 1 0
+void RgbColor::DarkenDivided(uint8_t dividor)
 {
-    if (R < Max - delta)
+    if (R > dividor)
     {
-        R += delta;
+        R /= dividor;
     }
     else
     {
-        R = Max;
+        R = 0;
     }
 
-    if (G < Max - delta)
+    if (G > dividor)
     {
-        G += delta;
+        G /= dividor;
     }
     else
     {
-        G = Max;
+        G = 0;
     }
 
-    if (B < Max - delta)
+    if (B > dividor)
     {
-        B += delta;
+        B /= dividor;
     }
     else
     {
-        B = Max;
+        B = 0;
     }
+
 }
-
 RgbColor RgbColor::LinearBlend(const RgbColor& left, const RgbColor& right, float progress)
 {
-    return RgbColor( left.R + ((right.R - left.R) * progress),
-        left.G + ((right.G - left.G) * progress),
-        left.B + ((right.B - left.B) * progress));
+	return RgbColor( left.R + ((right.R - left.R) * progress),
+		left.G + ((right.G - left.G) * progress),
+		left.B + ((right.B - left.B) * progress));
 }
 
 RgbColor RgbColor::BilinearBlend(const RgbColor& c00, 

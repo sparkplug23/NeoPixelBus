@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
-RgbColor provides a color object that can be directly consumed by NeoPixelBus
+RgbcctColor provides a color object that can be directly consumed by NeoPixelBus
 
 Written by Michael C. Miller.
 
@@ -26,25 +26,28 @@ License along with NeoPixel.  If not, see
 #pragma once
 
 #include <Arduino.h>
+
+#include "RgbwColor.h"
 #include "lib8tion/math8.h"
 
+struct RgbColor;
+struct RgbwColor;
 struct HslColor;
 struct HsbColor;
-struct RgbcctColor;
-struct HtmlColor;
 
+#define ENABLE_DEVFEATURE_RGBCCT_MANIPULATION
 // ------------------------------------------------------------------------
-// RgbColor represents a color object that is represented by Red, Green, Blue
-// component values.  It contains helpful color routines to manipulate the 
-// color.
+// RgbcctColor represents a color object that is represented by Red, Green, Blue
+// component values and an extra White component.  It contains helpful color 
+// routines to manipulate the color.
 // ------------------------------------------------------------------------
-struct RgbColor
+struct RgbcctColor
 {
     // ------------------------------------------------------------------------
-    // Construct a RgbColor using R, G, B values (0-255)
+    // Construct a RgbcctColor using R, G, B, W values (0-255)
     // ------------------------------------------------------------------------
-    RgbColor(uint8_t r, uint8_t g, uint8_t b) :
-        R(r), G(g), B(b)
+    RgbcctColor(uint8_t r, uint8_t g, uint8_t b, uint8_t ww = 0, uint8_t wc = 0) :
+        R(r), G(g), B(b), WW(ww), WC(wc)
     {
     };
 
@@ -53,84 +56,115 @@ struct RgbColor
     // This works well for creating gray tone colors
     // (0) = black, (255) = white, (128) = gray
     // ------------------------------------------------------------------------
-    RgbColor(uint8_t brightness) :
-        R(brightness), G(brightness), B(brightness)
+    RgbcctColor(uint8_t brightness) :
+        R(0), G(0), B(0), WW(brightness), WC(brightness)
     {
     };
 
     // ------------------------------------------------------------------------
-    // Construct a RgbColor using HtmlColor
+    // Construct a RgbcctColor using RgbColor
     // ------------------------------------------------------------------------
-    RgbColor(const HtmlColor& color);
-
-    // ------------------------------------------------------------------------
-    // Construct a RgbColor using HslColor
-    // ------------------------------------------------------------------------
-    RgbColor(const HslColor& color);
-
-    // ------------------------------------------------------------------------
-    // Construct a RgbColor using HsbColor
-    // ------------------------------------------------------------------------
-    RgbColor(const HsbColor& color);
-    
-    // ------------------------------------------------------------------------
-    // Construct a RgbColor using RgbcctColor
-    // ------------------------------------------------------------------------
-    RgbColor(const RgbcctColor& color);
-
-    // ------------------------------------------------------------------------
-    // Construct a RgbColor that will have its values set in latter operations
-    // CAUTION:  The R,G,B members are not initialized and may not be consistent
-    // ------------------------------------------------------------------------
-    RgbColor()
+    RgbcctColor(const RgbColor& color) :
+        R(color.R),
+        G(color.G),
+        B(color.B),
+        WW(0),
+        WC(0)
     {
     };
 
-
-
-   /// add one RGB to another, saturating at 0xFF for each channel
-    inline RgbColor& operator+= (const RgbColor& rhs )
+    // ------------------------------------------------------------------------
+    // Construct a RgbcctColor using RgbWColor
+    // ------------------------------------------------------------------------
+    RgbcctColor(const RgbwColor& color) :
+        R(color.R),
+        G(color.G),
+        B(color.B),
+        WC(color.W),    //to be renamed W1/W2, since it could be warm white or cold white
+        WW(color.W)
+        // R(0),G(0),B(0),WC(0)    
     {
-        // Serial.println("operator+= (const RgbcctColor& rhs )");
-        // delay(4000);
-        R = qadd8( R, rhs.R);
-        G = qadd8( G, rhs.G);
-        B = qadd8( B, rhs.B);
-        // WW = qadd8( WW, rhs.WW);
-        // WC = qadd8( WC, rhs.WC);
-        return *this;
-    }
+    };
 
+    // ------------------------------------------------------------------------
+    // Construct a RgbcctColor using HtmlColor
+    // ------------------------------------------------------------------------
+    RgbcctColor(const HtmlColor& color);
 
+    // ------------------------------------------------------------------------
+    // Construct a RgbcctColor using HslColor
+    // ------------------------------------------------------------------------
+    RgbcctColor(const HslColor& color);
 
-   /// add one RGB to another, saturating at 0xFF for each channel
-    inline RgbColor& operator-= (const RgbColor& rhs )
+    // ------------------------------------------------------------------------
+    // Construct a RgbcctColor using HsbColor
+    // ------------------------------------------------------------------------
+    RgbcctColor(const HsbColor& color);
+
+    // ------------------------------------------------------------------------
+    // Construct a RgbcctColor that will have its values set in latter operations
+    // CAUTION:  The R,G,B, W members are not initialized and may not be consistent
+    // ------------------------------------------------------------------------
+    RgbcctColor()
     {
-        // Serial.println("operator+= (const RgbcctColor& rhs )");
-        // delay(4000);
-        R = qsub8( R, rhs.R);
-        G = qsub8( G, rhs.G);
-        B = qsub8( B, rhs.B);
-        // WW = qadd8( WW, rhs.WW);
-        // WC = qadd8( WC, rhs.WC);
-        return *this;
-    }
-
-
-
-
+    };
 
     // ------------------------------------------------------------------------
     // Comparison operators
     // ------------------------------------------------------------------------
-    bool operator==(const RgbColor& other) const
+    bool operator==(const RgbcctColor& other) const
     {
-        return (R == other.R && G == other.G && B == other.B);
+        return (R == other.R && G == other.G && B == other.B && WW == other.WW && WC == other.WC);
     };
 
-    bool operator!=(const RgbColor& other) const
+    bool operator!=(const RgbcctColor& other) const
     {
         return !(*this == other);
+    };
+
+    // ------------------------------------------------------------------------
+    // Returns if the color is grey, all values are equal other than white
+    // ------------------------------------------------------------------------
+    bool IsMonotone() const
+    {
+        return (R == B && R == G);
+    };
+
+
+   /// add one RgbcctColor to another, saturating at 0xFF for each channel
+    inline RgbcctColor& operator+= (const RgbcctColor& rhs )
+    {
+        R = qadd8( R, rhs.R);
+        G = qadd8( G, rhs.G);
+        B = qadd8( B, rhs.B);
+        WW = qadd8( WW, rhs.WW);
+        WC = qadd8( WC, rhs.WC);
+        return *this;
+    }
+
+
+
+
+   /// add one RgbcctColor to another, saturating at 0xFF for each channel
+    inline RgbcctColor& operator-= (const RgbcctColor& rhs )
+    {
+        R = qsub8( R, rhs.R);
+        G = qsub8( G, rhs.G);
+        B = qsub8( B, rhs.B);
+        WW = qsub8( WW, rhs.WW);
+        WC = qsub8( WC, rhs.WC);
+        return *this;
+    }
+
+
+
+    // ------------------------------------------------------------------------
+    // Returns if the color components are all zero, the white component maybe 
+    // anything
+    // ------------------------------------------------------------------------
+    bool IsColorLess() const
+    {
+        return (R == 0 && B == 0 && G == 0);
     };
 
     // ------------------------------------------------------------------------
@@ -145,7 +179,6 @@ struct RgbColor
     // delta - (0-255) the amount to dim the color
     // ------------------------------------------------------------------------
     void Darken(uint8_t delta);
-    void DarkenDivided(uint8_t dividor);
 
     // ------------------------------------------------------------------------
     // Lighten will adjust the color by the given delta toward white
@@ -161,7 +194,7 @@ struct RgbColor
     // progress - (0.0 - 1.0) value where 0 will return left and 1.0 will return right
     //     and a value between will blend the color weighted linearly between them
     // ------------------------------------------------------------------------
-    static RgbColor LinearBlend(const RgbColor& left, const RgbColor& right, float progress);
+    static RgbcctColor LinearBlend(const RgbcctColor& left, const RgbcctColor& right, float progress);
     
     // ------------------------------------------------------------------------
     // BilinearBlend between four colors by the amount defined by 2d variable
@@ -172,19 +205,68 @@ struct RgbColor
     // x - unit value (0.0 - 1.0) that defines the blend progress in horizontal space
     // y - unit value (0.0 - 1.0) that defines the blend progress in vertical space
     // ------------------------------------------------------------------------
-    static RgbColor BilinearBlend(const RgbColor& c00, 
-        const RgbColor& c01, 
-        const RgbColor& c10, 
-        const RgbColor& c11, 
+    static RgbcctColor BilinearBlend(const RgbcctColor& c00, 
+        const RgbcctColor& c01, 
+        const RgbcctColor& c10, 
+        const RgbcctColor& c11, 
         float x, 
         float y);
 
     // ------------------------------------------------------------------------
-    // Red, Green, Blue color members (0-255) where 
-    // (0,0,0) is black and (255,255,255) is white
+    // Red, Green, Blue, White color members (0-255) where 
+    // (0,0,0,0) is black and (255,255,255, 0) and (0,0,0,255) is white
+    // Note (255,255,255,255) is extreme bright white
     // ------------------------------------------------------------------------
-    uint8_t R;
-    uint8_t G;
-    uint8_t B;
+    // enum{
+    // uint8_t R;
+    // uint8_t G;
+    // uint8_t B;
+    // uint8_t WW;
+    // uint8_t WC;
+
+    // Unions allow overlapping of parameters, size of parameters below is only 5 bytes, but can be accessed by multiple ways
+    union {
+		struct {
+            union {
+                uint8_t R;
+                uint8_t red;
+            };
+            union {
+                uint8_t G;
+                uint8_t green;
+            };
+            union {
+                uint8_t B;
+                uint8_t blue;
+            };
+            union {
+                uint8_t WW;
+                uint8_t warm_white;
+            };
+            union {
+                uint8_t WC;
+                uint8_t white_cold;
+            };
+        };
+		uint8_t raw[5];
+	};
+
+    inline uint8_t& operator[] (uint8_t x) __attribute__((always_inline))
+    {
+        return raw[x];
+    }
+
+
+#ifdef ENABLE_DEVFEATURE_RGBCCT_MANIPULATION
+
+
+
+
+
+
+
+
+#endif // ENABLE_DEVFEATURE_RGBCCT_MANIPULATION
+
 };
 

@@ -27,7 +27,7 @@ License along with NeoPixel.  If not, see
 #pragma once
 
 
-#if defined(NEOPIXEBUS_NO_STL)
+#ifdef ARDUINO_ARCH_AVR
 
 typedef uint16_t(*LayoutMapCallback)(int16_t x, int16_t y);
 

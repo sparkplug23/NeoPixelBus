@@ -2,7 +2,6 @@
 NeoPixelAnimator provides animation timing support.
 
 Written by Michael C. Miller.
-Edited by Michael G.
 
 I invest time and resources providing this open source code,
 please support me by dontating (see https://github.com/Makuna/NeoPixelBus)
@@ -44,7 +43,7 @@ struct AnimationParam
     AnimationState state;
 };
 
-#if defined(NEOPIXEBUS_NO_STL)
+#ifdef ARDUINO_ARCH_AVR
 
 typedef void(*AnimUpdateCallback)(const AnimationParam& param);
 

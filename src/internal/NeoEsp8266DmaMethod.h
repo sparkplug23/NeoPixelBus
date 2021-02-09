@@ -68,37 +68,37 @@ struct slc_queue_item
 class NeoEsp8266DmaSpeedBase
 {
 public:
-    static const uint8_t Level = 0x00;
-    static uint16_t Convert(uint8_t value)
-    {
-        const uint16_t bitpatterns[16] =
-        {
-            0b1000100010001000, 0b1000100010001110, 0b1000100011101000, 0b1000100011101110,
-            0b1000111010001000, 0b1000111010001110, 0b1000111011101000, 0b1000111011101110,
-            0b1110100010001000, 0b1110100010001110, 0b1110100011101000, 0b1110100011101110,
-            0b1110111010001000, 0b1110111010001110, 0b1110111011101000, 0b1110111011101110,
-        };
+	static const uint8_t Level = 0x00;
+	static uint16_t Convert(uint8_t value)
+	{
+		const uint16_t bitpatterns[16] =
+		{
+			0b1000100010001000, 0b1000100010001110, 0b1000100011101000, 0b1000100011101110,
+			0b1000111010001000, 0b1000111010001110, 0b1000111011101000, 0b1000111011101110,
+			0b1110100010001000, 0b1110100010001110, 0b1110100011101000, 0b1110100011101110,
+			0b1110111010001000, 0b1110111010001110, 0b1110111011101000, 0b1110111011101110,
+		};
 
-        return bitpatterns[value];
-    }
+		return bitpatterns[value];
+	}
 };
 
 class NeoEsp8266DmaInvertedSpeedBase
 {
 public:
-    static const uint8_t Level = 0xFF;
-    static uint16_t Convert(uint8_t value)
-    {
-        const uint16_t bitpatterns[16] =
-        {
-            0b0111011101110111, 0b0111011101110001, 0b0111011100010111, 0b0111011100010001,
-            0b0111000101110111, 0b0111000101110001, 0b0111000100010111, 0b0111000100010001,
-            0b0001011101110111, 0b0001011101110001, 0b0001011100010111, 0b0001011100010001,
-            0b0001000101110111, 0b0001000101110001, 0b0001000100010111, 0b0001000100010001,
-        };
+	static const uint8_t Level = 0xFF;
+	static uint16_t Convert(uint8_t value)
+	{
+		const uint16_t bitpatterns[16] =
+		{
+			0b0111011101110111, 0b0111011101110001, 0b0111011100010111, 0b0111011100010001,
+			0b0111000101110111, 0b0111000101110001, 0b0111000100010111, 0b0111000100010001,
+			0b0001011101110111, 0b0001011101110001, 0b0001011100010111, 0b0001011100010001,
+			0b0001000101110111, 0b0001000101110001, 0b0001000100010111, 0b0001000100010001,
+		};
 
-        return bitpatterns[value];
-    }
+		return bitpatterns[value];
+	}
 };
 
 class NeoEsp8266DmaSpeed800KbpsBase : public NeoEsp8266DmaSpeedBase
@@ -121,12 +121,6 @@ public:
     const static uint32_t ResetTimeUs = 80;
 };
 
-class NeoEsp8266DmaInvertedSpeedTm1814 : public NeoEsp8266DmaSpeed800KbpsBase
-{
-public:
-    const static uint32_t ResetTimeUs = 200;
-};
-
 class NeoEsp8266DmaSpeed800Kbps : public NeoEsp8266DmaSpeed800KbpsBase
 {
 public:
@@ -145,10 +139,10 @@ public:
 class NeoEsp8266DmaSpeedApa106 : public NeoEsp8266DmaSpeedBase
 {
 public:
-    const static uint32_t I2sClockDivisor = 4; 
-    const static uint32_t I2sBaseClockDivisor = 16;
-    const static uint32_t ByteSendTimeUs = 17; // us it takes to send a single pixel element
-    const static uint32_t ResetTimeUs = 50;
+	const static uint32_t I2sClockDivisor = 4; 
+	const static uint32_t I2sBaseClockDivisor = 16;
+	const static uint32_t ByteSendTimeUs = 17; // us it takes to send a single pixel element
+	const static uint32_t ResetTimeUs = 50;
 };
 
 
@@ -156,51 +150,45 @@ public:
 class NeoEsp8266DmaInvertedSpeed800KbpsBase : public NeoEsp8266DmaInvertedSpeedBase
 {
 public:
-    const static uint32_t I2sClockDivisor = 3;
-    const static uint32_t I2sBaseClockDivisor = 16;
-    const static uint32_t ByteSendTimeUs = 10; // us it takes to send a single pixel element at 800khz speed
+	const static uint32_t I2sClockDivisor = 3;
+	const static uint32_t I2sBaseClockDivisor = 16;
+	const static uint32_t ByteSendTimeUs = 10; // us it takes to send a single pixel element at 800khz speed
 };
 
 class NeoEsp8266DmaInvertedSpeedWs2812x : public NeoEsp8266DmaInvertedSpeed800KbpsBase
 {
 public:
-    const static uint32_t ResetTimeUs = 300;
+	const static uint32_t ResetTimeUs = 300;
 };
 
 class NeoEsp8266DmaInvertedSpeedSk6812 : public NeoEsp8266DmaInvertedSpeed800KbpsBase
 {
 public:
-    const static uint32_t ResetTimeUs = 80;
-};
-
-class NeoEsp8266DmaSpeedTm1814 : public NeoEsp8266DmaInvertedSpeed800KbpsBase
-{
-public:
-    const static uint32_t ResetTimeUs = 200;
+	const static uint32_t ResetTimeUs = 80;
 };
 
 class NeoEsp8266DmaInvertedSpeed800Kbps : public NeoEsp8266DmaInvertedSpeed800KbpsBase
 {
 public:
-    const static uint32_t ResetTimeUs = 50;
+	const static uint32_t ResetTimeUs = 50;
 };
 
 class NeoEsp8266DmaInvertedSpeed400Kbps : public NeoEsp8266DmaInvertedSpeedBase
 {
 public:
-    const static uint32_t I2sClockDivisor = 6;
-    const static uint32_t I2sBaseClockDivisor = 16;
-    const static uint32_t ByteSendTimeUs = 20; // us it takes to send a single pixel element at 400khz speed
-    const static uint32_t ResetTimeUs = 50;
+	const static uint32_t I2sClockDivisor = 6;
+	const static uint32_t I2sBaseClockDivisor = 16;
+	const static uint32_t ByteSendTimeUs = 20; // us it takes to send a single pixel element at 400khz speed
+	const static uint32_t ResetTimeUs = 50;
 };
 
 class NeoEsp8266DmaInvertedSpeedApa106 : public NeoEsp8266DmaInvertedSpeedBase
 {
 public:
-    const static uint32_t I2sClockDivisor = 4;
-    const static uint32_t I2sBaseClockDivisor = 16;
-    const static uint32_t ByteSendTimeUs = 17; // us it takes to send a single pixel element
-    const static uint32_t ResetTimeUs = 50;
+	const static uint32_t I2sClockDivisor = 4;
+	const static uint32_t I2sBaseClockDivisor = 16;
+	const static uint32_t ByteSendTimeUs = 17; // us it takes to send a single pixel element
+	const static uint32_t ResetTimeUs = 50;
 };
 
 enum NeoDmaState
@@ -217,18 +205,17 @@ const uint8_t c_I2sPin = 3; // due to I2S hardware, the pin used is restricted t
 template<typename T_SPEED> class NeoEsp8266DmaMethodBase
 {
 public:
-    NeoEsp8266DmaMethodBase(uint16_t pixelCount, size_t elementSize, size_t settingsSize) :
-        _sizeData(pixelCount * elementSize + settingsSize)
+    NeoEsp8266DmaMethodBase(uint16_t pixelCount, size_t elementSize)
     {
         uint16_t dmaPixelSize = c_dmaBytesPerPixelBytes * elementSize;
-        uint16_t dmaSettingsSize = c_dmaBytesPerPixelBytes * settingsSize;
 
-        _i2sBufferSize = pixelCount * dmaPixelSize + dmaSettingsSize;
+        _pixelsSize = pixelCount * elementSize;
+        _i2sBufferSize = pixelCount * dmaPixelSize;
 
-        _data = static_cast<uint8_t*>(malloc(_sizeData));
-        memset(_data, 0x00, _sizeData);
+        _pixels = (uint8_t*)malloc(_pixelsSize);
+        memset(_pixels, 0x00, _pixelsSize);
 
-        _i2sBuffer = static_cast<uint8_t*>(malloc(_i2sBufferSize));
+        _i2sBuffer = (uint8_t*)malloc(_i2sBufferSize);
         memset(_i2sBuffer, T_SPEED::Level, _i2sBufferSize);
 
         // _i2sBuffer[0] = 0b11101000; // debug, 1 bit then 0 bit
@@ -243,8 +230,7 @@ public:
         s_this = this; // store this for the ISR
     }
 
-    NeoEsp8266DmaMethodBase(uint8_t pin, uint16_t pixelCount, size_t elementSize, size_t settingsSize) : 
-        NeoEsp8266DmaMethodBase(pixelCount, elementSize, settingsSize)
+    NeoEsp8266DmaMethodBase(uint8_t pin, uint16_t pixelCount, size_t elementSize) : NeoEsp8266DmaMethodBase(pixelCount, elementSize)
     {
     }
 
@@ -270,7 +256,7 @@ public:
         s_this = nullptr;
         pinMode(c_I2sPin, INPUT);
 
-        free(_data);
+        free(_pixels);
         free(_i2sBuffer);
         free(_i2sBufDesc);
     }
@@ -403,23 +389,23 @@ public:
         _dmaState = NeoDmaState_Pending;
     }
 
-    uint8_t* getData() const
+    uint8_t* getPixels() const
     {
-        return _data;
+        return _pixels;
     };
 
-    size_t getDataSize() const
+    size_t getPixelsSize() const
     {
-        return _sizeData;
+        return _pixelsSize;
     }
 
 private:
     static NeoEsp8266DmaMethodBase* s_this; // for the ISR
 
-    const size_t  _sizeData;    // Size of '_data' buffer 
-    uint8_t*  _data;        // Holds LED color values
+    size_t    _pixelsSize;    // Size of '_pixels' buffer 
+    uint8_t*  _pixels;        // Holds LED color values
 
-    size_t _i2sBufferSize; // total size of _i2sBuffer
+    uint32_t _i2sBufferSize; // total size of _i2sBuffer
     uint8_t* _i2sBuffer;  // holds the DMA buffer that is referenced by _i2sBufDesc
 
     // normally 24 bytes creates the minimum 50us latch per spec, but
@@ -437,7 +423,7 @@ private:
     // handle here is the RX_EOF_INT status, which indicate the DMA has sent a buffer whose
     // descriptor has the 'EOF' field set to 1.
     // in the case of this code, the second to last state descriptor
-    static void ICACHE_RAM_ATTR i2s_slc_isr(void)
+    volatile static void ICACHE_RAM_ATTR i2s_slc_isr(void)
     {
         ETS_SLC_INTR_DISABLE();
 
@@ -489,11 +475,11 @@ private:
     void FillBuffers()
     {
         uint16_t* pDma = (uint16_t*)_i2sBuffer;
-        uint8_t* pEnd = _data + _sizeData;
-        for (uint8_t* pData = _data; pData < pEnd; pData++)
+        uint8_t* pPixelsEnd = _pixels + _pixelsSize;
+        for (uint8_t* pPixel = _pixels; pPixel < pPixelsEnd; pPixel++)
         {
-            *(pDma++) = T_SPEED::Convert(((*pData) & 0x0f));
-            *(pDma++) = T_SPEED::Convert(((*pData) >> 4) & 0x0f);
+            *(pDma++) = T_SPEED::Convert(((*pPixel) & 0x0f));
+            *(pDma++) = T_SPEED::Convert(((*pPixel) >> 4) & 0x0f);
         }
     }
 
@@ -520,7 +506,7 @@ private:
 
     uint32_t getPixelTime() const
     {
-        return (T_SPEED::ByteSendTimeUs * this->_sizeData);
+        return (T_SPEED::ByteSendTimeUs * this->_pixelsSize);
     };
 
 };
@@ -532,7 +518,6 @@ NeoEsp8266DmaMethodBase<T_SPEED>* NeoEsp8266DmaMethodBase<T_SPEED>::s_this;
 // normal
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaSpeedWs2812x> NeoEsp8266DmaWs2812xMethod;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaSpeedSk6812> NeoEsp8266DmaSk6812Method;
-typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaSpeedTm1814> NeoEsp8266DmaTm1814Method;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaSpeed800Kbps> NeoEsp8266Dma800KbpsMethod;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaSpeed400Kbps> NeoEsp8266Dma400KbpsMethod;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaSpeedApa106> NeoEsp8266DmaApa106Method;
@@ -540,7 +525,6 @@ typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaSpeedApa106> NeoEsp8266DmaApa106Met
 // inverted
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaInvertedSpeedWs2812x> NeoEsp8266DmaInvertedWs2812xMethod;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaInvertedSpeedSk6812> NeoEsp8266DmaInvertedSk6812Method;
-typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaInvertedSpeedTm1814> NeoEsp8266DmaInvertedTm1814Method;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaInvertedSpeed800Kbps> NeoEsp8266DmaInverted800KbpsMethod;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaInvertedSpeed400Kbps> NeoEsp8266DmaInverted400KbpsMethod;
 typedef NeoEsp8266DmaMethodBase<NeoEsp8266DmaInvertedSpeedApa106> NeoEsp8266DmaInvertedApa106Method;
@@ -551,7 +535,6 @@ typedef NeoEsp8266DmaWs2812xMethod NeoWs2812xMethod;
 typedef NeoEsp8266Dma800KbpsMethod NeoWs2812Method;
 typedef NeoEsp8266DmaWs2812xMethod NeoWs2811Method;
 typedef NeoEsp8266DmaSk6812Method NeoSk6812Method;
-typedef NeoEsp8266DmaTm1814Method NeoTm1814Method;
 typedef NeoEsp8266DmaSk6812Method NeoLc8812Method;
 typedef NeoEsp8266DmaApa106Method NeoApa106Method;
 
@@ -564,7 +547,6 @@ typedef NeoEsp8266DmaInvertedWs2812xMethod NeoWs2812xInvertedMethod;
 typedef NeoEsp8266DmaInverted800KbpsMethod NeoWs2812InvertedMethod;
 typedef NeoEsp8266DmaInvertedWs2812xMethod NeoWs2811InvertedMethod;
 typedef NeoEsp8266DmaInvertedSk6812Method NeoSk6812InvertedMethod;
-typedef NeoEsp8266DmaInvertedTm1814Method NeoTm1814InvertedMethod;
 typedef NeoEsp8266DmaInvertedSk6812Method NeoLc8812InvertedMethod;
 typedef NeoEsp8266DmaInvertedApa106Method NeoApa106InvertedMethod;
 

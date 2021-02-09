@@ -160,50 +160,7 @@ public:
     typedef RgbwColor ColorObject;
 };
 
-
-class DotStar3ElementsNoSettings : public DotStar3Elements
-{
-public:
-    typedef NeoNoSettings SettingsObject;
-    static const size_t SettingsSize = 0;
-
-    static void applySettings(uint8_t*, const SettingsObject&)
-    {
-    }
-
-    static uint8_t* pixels(uint8_t* pData)
-    {
-        return pData;
-    }
-
-    static const uint8_t* pixels(const uint8_t* pData)
-    {
-        return pData;
-    }
-};
-
-class DotStar4ElementsNoSettings : public DotStar4Elements
-{
-public:
-    typedef NeoNoSettings SettingsObject;
-    static const size_t SettingsSize = 0;
-
-    static void applySettings(uint8_t*, const SettingsObject&)
-    {
-    }
-
-    static uint8_t* pixels(uint8_t* pData)
-    {
-        return pData;
-    }
-
-    static const uint8_t* pixels(const uint8_t* pData)
-    {
-        return pData;
-    }
-};
-
-class DotStarBgrFeature : public DotStar3ElementsNoSettings
+class DotStarBgrFeature : public DotStar3Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -216,10 +173,10 @@ public:
         *p = color.R;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         p++; // ignore the first byte
         color.B = *p++;
@@ -244,7 +201,7 @@ public:
 
 };
 
-class DotStarLbgrFeature : public DotStar4ElementsNoSettings
+class DotStarLbgrFeature : public DotStar4Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -257,10 +214,10 @@ public:
         *p = color.R;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         color.W = (*p++) & 0x1F; // mask out upper three bits
         color.B = *p++;
@@ -285,7 +242,7 @@ public:
     
 };
 
-class DotStarGrbFeature : public DotStar3ElementsNoSettings
+class DotStarGrbFeature : public DotStar3Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -298,10 +255,10 @@ public:
         *p = color.B;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         p++; // ignore the first byte
         color.G = *p++;
@@ -326,7 +283,7 @@ public:
 
 };
 
-class DotStarLgrbFeature : public DotStar4ElementsNoSettings
+class DotStarLgrbFeature : public DotStar4Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -339,10 +296,10 @@ public:
         *p = color.B;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         color.W = (*p++) & 0x1F; // mask out upper three bits
         color.G = *p++;
@@ -368,7 +325,7 @@ public:
 };
 
 /* RGB Feature -- Some APA102s ship in RGB order */
-class DotStarRgbFeature : public DotStar3ElementsNoSettings
+class DotStarRgbFeature : public DotStar3Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -381,10 +338,10 @@ public:
         *p = color.B;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         p++; // ignore the first byte
         color.R = *p++;
@@ -409,7 +366,7 @@ public:
 
 };
 
-class DotStarLrgbFeature : public DotStar4ElementsNoSettings
+class DotStarLrgbFeature : public DotStar4Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -422,10 +379,10 @@ public:
         *p = color.B;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         color.W = (*p++) & 0x1F; // mask out upper three bits
         color.R = *p++;
@@ -450,7 +407,7 @@ public:
 
 };
 /* RBG Feature -- Some APA102s ship in RBG order */
-class DotStarRbgFeature : public DotStar3ElementsNoSettings
+class DotStarRbgFeature : public DotStar3Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -463,10 +420,10 @@ public:
         *p = color.G;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         p++; // ignore the first byte
         color.R = *p++;
@@ -491,7 +448,7 @@ public:
 
 };
 
-class DotStarLrbgFeature : public DotStar4ElementsNoSettings
+class DotStarLrbgFeature : public DotStar4Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -504,10 +461,10 @@ public:
         *p = color.G;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         color.W = (*p++) & 0x1F; // mask out upper three bits
         color.R = *p++;
@@ -533,7 +490,7 @@ public:
 };
 
 /* GBR Feature -- Some APA102s ship in GBR order */
-class DotStarGbrFeature : public DotStar3ElementsNoSettings
+class DotStarGbrFeature : public DotStar3Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -546,10 +503,10 @@ public:
         *p = color.R;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         p++; // ignore the first byte
         color.G = *p++;
@@ -574,7 +531,7 @@ public:
 
 };
 
-class DotStarLgbrFeature : public DotStar4ElementsNoSettings
+class DotStarLgbrFeature : public DotStar4Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -587,10 +544,10 @@ public:
         *p = color.R;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         color.W = (*p++) & 0x1F; // mask out upper three bits
         color.G = *p++;
@@ -615,7 +572,7 @@ public:
 
 };
 /* BRG Feature -- Some APA102s ship in BRG order */
-class DotStarBrgFeature : public DotStar3ElementsNoSettings
+class DotStarBrgFeature : public DotStar3Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -628,10 +585,10 @@ public:
         *p = color.G;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         p++; // ignore the first byte
         color.B = *p++;
@@ -656,7 +613,7 @@ public:
 
 };
 
-class DotStarLbrgFeature : public DotStar4ElementsNoSettings
+class DotStarLbrgFeature : public DotStar4Elements
 {
 public:
     static void applyPixelColor(uint8_t* pPixels, uint16_t indexPixel, ColorObject color)
@@ -669,10 +626,10 @@ public:
         *p = color.G;
     }
 
-    static ColorObject retrievePixelColor(const uint8_t* pPixels, uint16_t indexPixel)
+    static ColorObject retrievePixelColor(uint8_t* pPixels, uint16_t indexPixel)
     {
         ColorObject color;
-        const uint8_t* p = getPixelAddress(pPixels, indexPixel);
+        uint8_t* p = getPixelAddress(pPixels, indexPixel);
 
         color.W = (*p++) & 0x1F; // mask out upper three bits
         color.B = *p++;

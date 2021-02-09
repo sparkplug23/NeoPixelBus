@@ -28,6 +28,7 @@ License along with NeoPixel.  If not, see
 #include <Arduino.h>
 
 struct RgbColor;
+struct RgbcctColor;
 struct HslColor;
 struct HsbColor;
 
@@ -38,8 +39,6 @@ struct HsbColor;
 // ------------------------------------------------------------------------
 struct RgbwColor
 {
-    typedef NeoRgbwCurrentSettings SettingsObject;
-
     // ------------------------------------------------------------------------
     // Construct a RgbwColor using R, G, B, W values (0-255)
     // ------------------------------------------------------------------------
@@ -68,7 +67,7 @@ struct RgbwColor
         W(0)
     {
     };
-
+    
     // ------------------------------------------------------------------------
     // Construct a RgbwColor using HtmlColor
     // ------------------------------------------------------------------------
@@ -78,6 +77,11 @@ struct RgbwColor
     // Construct a RgbwColor using HslColor
     // ------------------------------------------------------------------------
     RgbwColor(const HslColor& color);
+
+    // ------------------------------------------------------------------------
+    // Construct a RgbwColor using RgbcctColor
+    // ------------------------------------------------------------------------
+    RgbwColor(const RgbcctColor& color);
 
     // ------------------------------------------------------------------------
     // Construct a RgbwColor using HsbColor
@@ -92,6 +96,37 @@ struct RgbwColor
     {
     };
 
+
+
+   /// add one RGB to another, saturating at 0xFF for each channel
+    inline RgbwColor& operator+= (const RgbwColor& rhs )
+    {
+        // Serial.println("operator+= (const RgbcctColor& rhs )");
+        // delay(4000);
+        R = qadd8( R, rhs.R);
+        G = qadd8( G, rhs.G);
+        B = qadd8( B, rhs.B);
+        W = qadd8( W, rhs.W);
+        // WW = qadd8( WW, rhs.WW);
+        // WC = qadd8( WC, rhs.WC);
+        return *this;
+    }
+
+
+
+   /// add one RGB to another, saturating at 0xFF for each channel
+    inline RgbwColor& operator-= (const RgbwColor& rhs )
+    {
+        // Serial.println("operator+= (const RgbcctColor& rhs )");
+        // delay(4000);
+        R = qsub8( R, rhs.R);
+        G = qsub8( G, rhs.G);
+        B = qsub8( B, rhs.B);
+        W = qsub8( W, rhs.W);
+        // WW = qadd8( WW, rhs.WW);
+        // WC = qadd8( WC, rhs.WC);
+        return *this;
+    }
     // ------------------------------------------------------------------------
     // Comparison operators
     // ------------------------------------------------------------------------
@@ -127,22 +162,6 @@ struct RgbwColor
     // NOTE: This is a simple linear brightness
     // ------------------------------------------------------------------------
     uint8_t CalculateBrightness() const;
-
-    // ------------------------------------------------------------------------
-    // Dim will return a new color that is blended to black with the given ratio
-    // ratio - (0-255) where 255 will return the original color and 0 will return black
-    // 
-    // NOTE: This is a simple linear blend
-    // ------------------------------------------------------------------------
-    RgbwColor Dim(uint8_t ratio) const;
-
-    // ------------------------------------------------------------------------
-    // Brighten will return a new color that is blended to white with the given ratio
-    // ratio - (0-255) where 255 will return the original color and 0 will return white
-    // 
-    // NOTE: This is a simple linear blend
-    // ------------------------------------------------------------------------
-    RgbwColor Brighten(uint8_t ratio) const;
 
     // ------------------------------------------------------------------------
     // Darken will adjust the color by the given delta toward black
@@ -183,18 +202,6 @@ struct RgbwColor
         float x, 
         float y);
 
-    uint16_t CalcTotalTenthMilliAmpere(const SettingsObject& settings)
-    {
-        auto total = 0;
-
-        total += R * settings.RedTenthMilliAmpere / 255;
-        total += G * settings.GreenTenthMilliAmpere / 255;
-        total += B * settings.BlueTenthMilliAmpere / 255;
-        total += W * settings.WhiteCurrent / 255;
-
-        return total;
-    }
-
     // ------------------------------------------------------------------------
     // Red, Green, Blue, White color members (0-255) where 
     // (0,0,0,0) is black and (255,255,255, 0) and (0,0,0,255) is white
@@ -204,26 +211,5 @@ struct RgbwColor
     uint8_t G;
     uint8_t B;
     uint8_t W;
-
-private:
-    inline static uint8_t _elementDim(uint8_t value, uint8_t ratio)
-    {
-        return (static_cast<uint16_t>(value) * (static_cast<uint16_t>(ratio) + 1)) >> 8;
-    }
-
-    inline static uint8_t _elementBrighten(uint8_t value, uint8_t ratio)
-    {
-        uint16_t element = ((static_cast<uint16_t>(value) + 1) << 8) / (static_cast<uint16_t>(ratio) + 1);
-
-        if (element > 255)
-        {
-            element = 255;
-        }
-        else
-        {
-            element -= 1;
-        }
-        return element;
-    }
 };
 
