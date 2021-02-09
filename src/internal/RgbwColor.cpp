@@ -25,7 +25,7 @@ License along with NeoPixel.  If not, see
 -------------------------------------------------------------------------*/
 
 #include "RgbColor.h"
-#include "RgbcctColor.h"
+#include "Rgb48Color.h"
 #include "HslColor.h"
 #include "HsbColor.h"
 #include "RgbwColor.h"
@@ -49,20 +49,11 @@ RgbwColor::RgbwColor(const HslColor& color)
     *this = rgbColor;
 }
 
-RgbwColor::RgbwColor(const RgbcctColor& color)
-{
-    R = color.R;
-    G = color.G;
-    B = color.B;
-    W = color.WW;
-}
-
 RgbwColor::RgbwColor(const HsbColor& color)
 {
     RgbColor rgbColor(color);
     *this = rgbColor;
 }
-
 
 uint8_t RgbwColor::CalculateBrightness() const
 {
@@ -75,6 +66,18 @@ uint8_t RgbwColor::CalculateBrightness() const
     {
         return colorB;
     }
+}
+
+RgbwColor RgbwColor::Dim(uint8_t ratio) const
+{
+    // specifically avoids float math
+    return RgbwColor(_elementDim(R, ratio), _elementDim(G, ratio), _elementDim(B, ratio), _elementDim(W, ratio));
+}
+
+RgbwColor RgbwColor::Brighten(uint8_t ratio) const
+{
+    // specifically avoids float math
+    return RgbwColor(_elementBrighten(R, ratio), _elementBrighten(G, ratio), _elementBrighten(B, ratio), _elementBrighten(W, ratio));
 }
 
 void RgbwColor::Darken(uint8_t delta)

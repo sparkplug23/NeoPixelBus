@@ -26,20 +26,20 @@ License along with NeoPixel.  If not, see
 #pragma once
 
 #include <Arduino.h>
-#include "lib8tion/math8.h"
+#include "NeoSettings.h"
+#include "RgbColorBase.h"
 
-struct HslColor;
-struct HsbColor;
-struct RgbcctColor;
-struct HtmlColor;
+struct RgbwColor;
 
 // ------------------------------------------------------------------------
 // RgbColor represents a color object that is represented by Red, Green, Blue
 // component values.  It contains helpful color routines to manipulate the 
 // color.
 // ------------------------------------------------------------------------
-struct RgbColor
+struct RgbColor : RgbColorBase
 {
+    typedef NeoRgbCurrentSettings SettingsObject;
+
     // ------------------------------------------------------------------------
     // Construct a RgbColor using R, G, B values (0-255)
     // ------------------------------------------------------------------------
@@ -59,6 +59,16 @@ struct RgbColor
     };
 
     // ------------------------------------------------------------------------
+    // explicitly Construct a RgbColor using RgbwColor
+    // ------------------------------------------------------------------------
+    explicit RgbColor(const RgbwColor& color);
+
+    // ------------------------------------------------------------------------
+    // Construct a RgbColor using Rgb16Color
+    // ------------------------------------------------------------------------
+    RgbColor(const Rgb16Color& color);
+
+    // ------------------------------------------------------------------------
     // Construct a RgbColor using HtmlColor
     // ------------------------------------------------------------------------
     RgbColor(const HtmlColor& color);
@@ -72,11 +82,7 @@ struct RgbColor
     // Construct a RgbColor using HsbColor
     // ------------------------------------------------------------------------
     RgbColor(const HsbColor& color);
-    
-    // ------------------------------------------------------------------------
-    // Construct a RgbColor using RgbcctColor
-    // ------------------------------------------------------------------------
-    RgbColor(const RgbcctColor& color);
+
 
     // ------------------------------------------------------------------------
     // Construct a RgbColor that will have its values set in latter operations
@@ -85,40 +91,6 @@ struct RgbColor
     RgbColor()
     {
     };
-
-
-
-   /// add one RGB to another, saturating at 0xFF for each channel
-    inline RgbColor& operator+= (const RgbColor& rhs )
-    {
-        // Serial.println("operator+= (const RgbcctColor& rhs )");
-        // delay(4000);
-        R = qadd8( R, rhs.R);
-        G = qadd8( G, rhs.G);
-        B = qadd8( B, rhs.B);
-        // WW = qadd8( WW, rhs.WW);
-        // WC = qadd8( WC, rhs.WC);
-        return *this;
-    }
-
-
-
-   /// add one RGB to another, saturating at 0xFF for each channel
-    inline RgbColor& operator-= (const RgbColor& rhs )
-    {
-        // Serial.println("operator+= (const RgbcctColor& rhs )");
-        // delay(4000);
-        R = qsub8( R, rhs.R);
-        G = qsub8( G, rhs.G);
-        B = qsub8( B, rhs.B);
-        // WW = qadd8( WW, rhs.WW);
-        // WC = qadd8( WC, rhs.WC);
-        return *this;
-    }
-
-
-
-
 
     // ------------------------------------------------------------------------
     // Comparison operators
@@ -140,12 +112,27 @@ struct RgbColor
     uint8_t CalculateBrightness() const;
 
     // ------------------------------------------------------------------------
+    // Dim will return a new color that is blended to black with the given ratio
+    // ratio - (0-255) where 255 will return the original color and 0 will return black
+    // 
+    // NOTE: This is a simple linear blend
+    // ------------------------------------------------------------------------
+    RgbColor Dim(uint8_t ratio) const;
+
+    // ------------------------------------------------------------------------
+    // Brighten will return a new color that is blended to white with the given ratio
+    // ratio - (0-255) where 255 will return the original color and 0 will return white
+    // 
+    // NOTE: This is a simple linear blend
+    // ------------------------------------------------------------------------
+    RgbColor Brighten(uint8_t ratio) const;
+
+    // ------------------------------------------------------------------------
     // Darken will adjust the color by the given delta toward black
     // NOTE: This is a simple linear change
     // delta - (0-255) the amount to dim the color
     // ------------------------------------------------------------------------
     void Darken(uint8_t delta);
-    void DarkenDivided(uint8_t dividor);
 
     // ------------------------------------------------------------------------
     // Lighten will adjust the color by the given delta toward white
@@ -179,6 +166,17 @@ struct RgbColor
         float x, 
         float y);
 
+    uint32_t CalcTotalTenthMilliAmpere(const SettingsObject& settings)
+    {
+        auto total = 0;
+
+        total += R * settings.RedTenthMilliAmpere / Max;
+        total += G * settings.GreenTenthMilliAmpere / Max;
+        total += B * settings.BlueTenthMilliAmpere / Max;
+
+        return total;
+    }
+
     // ------------------------------------------------------------------------
     // Red, Green, Blue color members (0-255) where 
     // (0,0,0) is black and (255,255,255) is white
@@ -186,5 +184,28 @@ struct RgbColor
     uint8_t R;
     uint8_t G;
     uint8_t B;
+
+    const static uint8_t Max = 255;
+
+private:
+    inline static uint8_t _elementDim(uint8_t value, uint8_t ratio)
+    {
+        return (static_cast<uint16_t>(value) * (static_cast<uint16_t>(ratio) + 1)) >> 8;
+    }
+
+    inline static uint8_t _elementBrighten(uint8_t value, uint8_t ratio)
+    { 
+        uint16_t element = ((static_cast<uint16_t>(value) + 1) << 8) / (static_cast<uint16_t>(ratio) + 1);
+
+        if (element > Max)
+        {
+            element = Max;
+        }
+        else
+        {
+            element -= 1;
+        }
+        return element;
+    }
 };
 

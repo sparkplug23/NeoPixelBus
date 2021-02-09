@@ -42,7 +42,7 @@ struct MyAnimationState
 };
 
 NeoPixelAnimator animations(AnimCount); // NeoPixel animation management object
-MyAnimationState animation_colours[AnimCount];
+MyAnimationState animationState[AnimCount];
 uint16_t frontPixel = 0;  // the front of the loop
 RgbColor frontColor;  // the color at the front of the loop
 
@@ -72,11 +72,11 @@ void FadeOutAnimUpdate(const AnimationParam& param)
     // we use the blend function on the RgbColor to mix
     // color based on the progress given to us in the animation
     RgbColor updatedColor = RgbColor::LinearBlend(
-        animation_colours[param.index].StartingColor,
-        animation_colours[param.index].EndingColor,
+        animationState[param.index].StartingColor,
+        animationState[param.index].EndingColor,
         param.progress);
     // apply the color to the strip
-    strip.SetPixelColor(animation_colours[param.index].IndexPixel, 
+    strip.SetPixelColor(animationState[param.index].IndexPixel, 
         colorGamma.Correct(updatedColor));
 }
 
@@ -104,9 +104,9 @@ void LoopAnimUpdate(const AnimationParam& param)
         // the number of animation channels
         if (animations.NextAvailableAnimation(&indexAnim, 1))
         {
-            animation_colours[indexAnim].StartingColor = frontColor;
-            animation_colours[indexAnim].EndingColor = RgbColor(0, 0, 0);
-            animation_colours[indexAnim].IndexPixel = frontPixel;
+            animationState[indexAnim].StartingColor = frontColor;
+            animationState[indexAnim].EndingColor = RgbColor(0, 0, 0);
+            animationState[indexAnim].IndexPixel = frontPixel;
 
             animations.StartAnimation(indexAnim, PixelFadeDuration, FadeOutAnimUpdate);
         }

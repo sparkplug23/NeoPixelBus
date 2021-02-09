@@ -202,7 +202,7 @@ public:
     };
 
 private:
-    const uint16_t _countPixels; // Number of RGB ledout.index in strip
+    const uint16_t _countPixels; // Number of RGB LEDs in strip
     T_COLOR_OBJECT* _pixels;
     uint8_t _state;     // internal state
 };

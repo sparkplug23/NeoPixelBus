@@ -53,7 +53,7 @@ NeoPixelAnimator animations(PixelCount, NEO_CENTISECONDS);
 // NEO_DECASECONDS     10000    // ~7.5 days, 10 second updates
 //
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(NEOPIXEBUS_NO_STL)
 // for AVR, you need to manage the state due to lack of STL/compiler support
 // for Esp8266 you can define the function using a lambda and state is created for you
 // see below for an example
@@ -64,22 +64,22 @@ struct MyAnimationState
     AnimEaseFunction Easeing; // the acceleration curve it will use 
 };
 
-MyAnimationState animation_colours[PixelCount];
+MyAnimationState animationState[PixelCount];
 // one entry per pixel to match the animation timing manager
 
 void AnimUpdate(const AnimationParam& param)
 {
     // first apply an easing (curve) to the animation
     // this simulates acceleration to the effect
-    float progress = animation_colours[param.index].Easeing(param.progress);
+    float progress = animationState[param.index].Easeing(param.progress);
 
     // this gets called for each animation on every time step
     // progress will start at 0.0 and end at 1.0
     // we use the blend function on the RgbColor to mix
     // color based on the progress given to us in the animation
     RgbColor updatedColor = RgbColor::LinearBlend(
-        animation_colours[param.index].StartingColor,
-        animation_colours[param.index].EndingColor,
+        animationState[param.index].StartingColor,
+        animationState[param.index].EndingColor,
         progress);
     // apply the color to the strip
     strip.SetPixelColor(param.index, updatedColor);
@@ -158,13 +158,13 @@ void SetupAnimationSet()
             break;
         }
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(NEOPIXEBUS_NO_STL)
         // each animation starts with the color that was present
-        animation_colours[pixel].StartingColor = originalColor;
+        animationState[pixel].StartingColor = originalColor;
         // and ends with a random color
-        animation_colours[pixel].EndingColor = targetColor;
+        animationState[pixel].EndingColor = targetColor;
         // using the specific curve
-        animation_colours[pixel].Easeing = easing;
+        animationState[pixel].Easeing = easing;
 
         // now use the animation state we just calculated and start the animation
         // which will continue to run and call the update function until it completes

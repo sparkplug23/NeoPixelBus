@@ -27,33 +27,33 @@ License along with NeoPixel.  If not, see
 #include "HtmlColor.h"
 #include "HtmlColorNameStrings.h"
 
-// static const HtmlColorPair c_ShortColorNames[] PROGMEM = {
-//     { c_HtmlNameAqua, 0xffff },
-//     { c_HtmlNameBlack, 0x0 },
-//     { c_HtmlNameBlue, 0xff },
-//     { c_HtmlNameFuchsia, 0xff00ff },
-//     { c_HtmlNameGray, 0x808080 },
-//     { c_HtmlNameGreen, 0x8000 },
-//     { c_HtmlNameLime, 0xff00 },
-//     { c_HtmlNameMaroon, 0x800000 },
-//     { c_HtmlNameNavy, 0x80 },
-//     { c_HtmlNameOlive, 0x808000 },
-//     { c_HtmlNameOrange, 0xffa500 },
-//     { c_HtmlNamePurple, 0x800080 },
-//     { c_HtmlNameRed, 0xff0000 },
-//     { c_HtmlNameSilver, 0xc0c0c0 },
-//     { c_HtmlNameTeal, 0x8080 },
-//     { c_HtmlNameWhite, 0xffffff },
-//     { c_HtmlNameYellow, 0xffff00 },
-// };
+static const HtmlColorPair c_ShortColorNames[] PROGMEM = {
+    { c_HtmlNameAqua, 0xffff },
+    { c_HtmlNameBlack, 0x0 },
+    { c_HtmlNameBlue, 0xff },
+    { c_HtmlNameFuchsia, 0xff00ff },
+    { c_HtmlNameGray, 0x808080 },
+    { c_HtmlNameGreen, 0x8000 },
+    { c_HtmlNameLime, 0xff00 },
+    { c_HtmlNameMaroon, 0x800000 },
+    { c_HtmlNameNavy, 0x80 },
+    { c_HtmlNameOlive, 0x808000 },
+    { c_HtmlNameOrange, 0xffa500 },
+    { c_HtmlNamePurple, 0x800080 },
+    { c_HtmlNameRed, 0xff0000 },
+    { c_HtmlNameSilver, 0xc0c0c0 },
+    { c_HtmlNameTeal, 0x8080 },
+    { c_HtmlNameWhite, 0xffffff },
+    { c_HtmlNameYellow, 0xffff00 },
+};
 
 
 const HtmlColorPair* HtmlShortColorNames::Pair(uint8_t index)
 {
-    // return &c_ShortColorNames[index];
+    return &c_ShortColorNames[index];
 }
 
 uint8_t HtmlShortColorNames::Count()
 {
-    // return countof(c_ShortColorNames);
+    return countof(c_ShortColorNames);
 }

@@ -32,7 +32,7 @@ struct MyAnimationState
 };
 
 // one entry per pixel to match the animation timing manager
-MyAnimationState animation_colours[AnimationChannels];
+MyAnimationState animationState[AnimationChannels];
 
 void SetRandomSeed()
 {
@@ -60,8 +60,8 @@ void BlendAnimUpdate(const AnimationParam& param)
     // we use the blend function on the RgbColor to mix
     // color based on the progress given to us in the animation
     RgbColor updatedColor = RgbColor::LinearBlend(
-        animation_colours[param.index].StartingColor,
-        animation_colours[param.index].EndingColor,
+        animationState[param.index].StartingColor,
+        animationState[param.index].EndingColor,
         param.progress);
 
     // apply the color to the strip
@@ -82,8 +82,8 @@ void FadeInFadeOutRinseRepeat(float luminance)
         RgbColor target = HslColor(random(360) / 360.0f, 1.0f, luminance);
         uint16_t time = random(800, 2000);
 
-        animation_colours[0].StartingColor = strip.GetPixelColor(0);
-        animation_colours[0].EndingColor = target;
+        animationState[0].StartingColor = strip.GetPixelColor(0);
+        animationState[0].EndingColor = target;
 
         animations.StartAnimation(0, time, BlendAnimUpdate);
     }
@@ -92,8 +92,8 @@ void FadeInFadeOutRinseRepeat(float luminance)
         // fade to black
         uint16_t time = random(600, 700);
 
-        animation_colours[0].StartingColor = strip.GetPixelColor(0);
-        animation_colours[0].EndingColor = RgbColor(0);
+        animationState[0].StartingColor = strip.GetPixelColor(0);
+        animationState[0].EndingColor = RgbColor(0);
 
         animations.StartAnimation(0, time, BlendAnimUpdate);
     }

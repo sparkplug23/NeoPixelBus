@@ -27,6 +27,16 @@ License along with NeoPixel.  If not, see
 
 #include <Arduino.h>
 
+// some platforms do not come with STL or properly defined one, specifically functional
+// if you see...
+// undefined reference to `std::__throw_bad_function_call()'
+// ...then you can either add the platform symbol to the list so NEOPIXEBUS_NO_STL gets defined or
+// go to boards.txt and enable c++ by adding (teensy31.build.flags.libs=-lstdc++) and set to "smallest code" option in Arduino
+//
+#if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR) || defined(STM32L432xx) || defined(STM32L476xx) || defined(ARDUINO_ARCH_SAM)
+#define NEOPIXEBUS_NO_STL 1
+#endif
+
 // some platforms do not define this standard progmem type for some reason
 //
 #ifndef PGM_VOID_P
@@ -36,25 +46,27 @@ License along with NeoPixel.  If not, see
 // '_state' flags for internal state
 #define NEO_DIRTY   0x80 // a change was made to pixel data that requires a show
 
-#include "internal/lib8tion/lib8tion.h"
-#include "internal/lib8tion/math8.h"
-
 #include "internal/NeoHueBlend.h"
 
+#include "internal/NeoSettings.h"
+
 #include "internal/RgbColor.h"
+#include "internal/Rgb16Color.h"
+#include "internal/Rgb48Color.h"
+
 #include "internal/HslColor.h"
 #include "internal/HsbColor.h"
 #include "internal/HtmlColor.h"
-#include "internal/RgbwColor.h"
-#include "internal/RgbcctColor.h"
-#include "internal/RgbcctColor_Controller.h"
 
+#include "internal/RgbwColor.h"
 #include "internal/SegmentDigit.h"
 
-
 #include "internal/NeoColorFeatures.h"
+#include "internal/NeoTm1814ColorFeatures.h"
 #include "internal/DotStarColorFeatures.h"
 #include "internal/Lpd8806ColorFeatures.h"
+#include "internal/Lpd6803ColorFeatures.h"
+#include "internal/P9813ColorFeatures.h"
 #include "internal/NeoSegmentFeatures.h"
 
 #include "internal/Layouts.h"
@@ -73,8 +85,13 @@ License along with NeoPixel.  If not, see
 #include "internal/NeoEase.h"
 #include "internal/NeoGamma.h"
 
+#include "internal/NeoBusChannel.h"
+
 #include "internal/DotStarGenericMethod.h"
 #include "internal/Lpd8806GenericMethod.h"
+#include "internal/Lpd6803GenericMethod.h"
+#include "internal/Ws2801GenericMethod.h"
+#include "internal/P9813GenericMethod.h"
 
 #if defined(ARDUINO_ARCH_ESP8266)
 
@@ -88,11 +105,15 @@ License along with NeoPixel.  If not, see
 #include "internal/NeoEsp32RmtMethod.h"
 #include "internal/NeoEspBitBangMethod.h"
 
+#elif defined(ARDUINO_ARCH_NRF52840) // must be before __arm__
+
+#include "internal/NeoNrf52xMethod.h"
+
 #elif defined(__arm__) // must be before ARDUINO_ARCH_AVR due to Teensy incorrectly having it set
 
 #include "internal/NeoArmMethod.h"
 
-#elif defined(ARDUINO_ARCH_AVR)
+#elif defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
 
 #include "internal/NeoAvrMethod.h"
 
@@ -101,32 +122,37 @@ License along with NeoPixel.  If not, see
 #endif
 
 
-
-
 template<typename T_COLOR_FEATURE, typename T_METHOD> class NeoPixelBus
 {
 public:
-    // Constructor: number of ledout.index, pin number
+    // Constructor: number of LEDs, pin number
     // NOTE:  Pin Number maybe ignored due to hardware limitations of the method.
    
     NeoPixelBus(uint16_t countPixels, uint8_t pin) :
         _countPixels(countPixels),
         _state(0),
-        _method(pin, countPixels, T_COLOR_FEATURE::PixelSize)
+        _method(pin, countPixels, T_COLOR_FEATURE::PixelSize, T_COLOR_FEATURE::SettingsSize)
+    {
+    }
+
+    NeoPixelBus(uint16_t countPixels, uint8_t pin, NeoBusChannel channel) :
+        _countPixels(countPixels),
+        _state(0),
+        _method(pin, countPixels, T_COLOR_FEATURE::PixelSize, T_COLOR_FEATURE::SettingsSize, channel)
     {
     }
 
     NeoPixelBus(uint16_t countPixels, uint8_t pinClock, uint8_t pinData) :
         _countPixels(countPixels),
         _state(0),
-        _method(pinClock, pinData, countPixels, T_COLOR_FEATURE::PixelSize)
+        _method(pinClock, pinData, countPixels, T_COLOR_FEATURE::PixelSize, T_COLOR_FEATURE::SettingsSize)
     {
     }
 
     NeoPixelBus(uint16_t countPixels) :
         _countPixels(countPixels),
         _state(0),
-        _method(countPixels, T_COLOR_FEATURE::PixelSize)
+        _method(countPixels, T_COLOR_FEATURE::PixelSize, T_COLOR_FEATURE::SettingsSize)
     {
     }
 
@@ -137,7 +163,7 @@ public:
     operator NeoBufferContext<T_COLOR_FEATURE>()
     {
         Dirty(); // we assume you are playing with bits
-        return NeoBufferContext<T_COLOR_FEATURE>(_method.getPixels(), _method.getPixelsSize());
+        return NeoBufferContext<T_COLOR_FEATURE>(_pixels(), PixelsSize());
     }
 
     void Begin()
@@ -187,12 +213,12 @@ public:
 
     uint8_t* Pixels() 
     {
-        return _method.getPixels();
+        return _pixels();
     };
 
     size_t PixelsSize() const
     {
-        return _method.getPixelsSize();
+        return _method.getDataSize() - T_COLOR_FEATURE::SettingsSize;
     };
 
     size_t PixelSize() const
@@ -209,7 +235,7 @@ public:
     {
         if (indexPixel < _countPixels)
         {
-            T_COLOR_FEATURE::applyPixelColor(_method.getPixels(), indexPixel, color);
+            T_COLOR_FEATURE::applyPixelColor(_pixels(), indexPixel, color);
             Dirty();
         }
     };
@@ -218,7 +244,7 @@ public:
     {
         if (indexPixel < _countPixels)
         {
-            return T_COLOR_FEATURE::retrievePixelColor(_method.getPixels(), indexPixel);
+            return T_COLOR_FEATURE::retrievePixelColor(_pixels(), indexPixel);
         }
         else
         {
@@ -231,7 +257,7 @@ public:
     void ClearTo(typename T_COLOR_FEATURE::ColorObject color)
     {
         uint8_t temp[T_COLOR_FEATURE::PixelSize]; 
-        uint8_t* pixels = _method.getPixels();
+        uint8_t* pixels = _pixels();
 
         T_COLOR_FEATURE::applyPixelColor(temp, 0, color);
 
@@ -247,7 +273,7 @@ public:
             first <= last)
         {
             uint8_t temp[T_COLOR_FEATURE::PixelSize];
-            uint8_t* pixels = _method.getPixels();
+            uint8_t* pixels = _pixels();
             uint8_t* pFront = T_COLOR_FEATURE::getPixelAddress(pixels, first);
 
             T_COLOR_FEATURE::applyPixelColor(temp, 0, color);
@@ -346,18 +372,49 @@ public:
         SetPixelColor(indexPixelOne, colorTwo);
         SetPixelColor(indexPixelTwo, colorOne);
     };
+
+    void SetPixelSettings(const typename T_COLOR_FEATURE::SettingsObject& settings)
+    {
+        T_COLOR_FEATURE::applySettings(_method.getData(), settings);
+        Dirty();
+    };
  
+    uint32_t CalcTotalMilliAmpere(const typename T_COLOR_FEATURE::ColorObject::SettingsObject& settings)
+    {
+        uint32_t total = 0; // in 1/10th milliamps
+
+        for (uint16_t index = 0; index < _countPixels; index++)
+        {
+            auto color = GetPixelColor(index);
+            total += color.CalcTotalTenthMilliAmpere(settings);
+        }
+
+        return total / 10; // return millamps
+    }
+
 protected:
-    const uint16_t _countPixels; // Number of RGB ledout.index in strip
+    const uint16_t _countPixels; // Number of RGB LEDs in strip
 
     uint8_t _state;     // internal state
     T_METHOD _method;
+
+    uint8_t* _pixels()
+    {
+        // get pixels data within the data stream
+        return T_COLOR_FEATURE::pixels(_method.getData());
+    }
+
+    const uint8_t* _pixels() const
+    {
+        // get pixels data within the data stream
+        return T_COLOR_FEATURE::pixels(_method.getData());
+    }
 
     void _rotateLeft(uint16_t rotationCount, uint16_t first, uint16_t last)
     {
         // store in temp
         uint8_t temp[rotationCount * T_COLOR_FEATURE::PixelSize];
-        uint8_t* pixels = _method.getPixels();
+        uint8_t* pixels = _pixels();
 
         uint8_t* pFront = T_COLOR_FEATURE::getPixelAddress(pixels, first);
 
@@ -378,7 +435,7 @@ protected:
         uint16_t front = first + shiftCount;
         uint16_t count = last - front + 1;
 
-        uint8_t* pixels = _method.getPixels();
+        uint8_t* pixels = _pixels();
         uint8_t* pFirst = T_COLOR_FEATURE::getPixelAddress(pixels, first);
         uint8_t* pFront = T_COLOR_FEATURE::getPixelAddress(pixels, front);
 
@@ -391,7 +448,7 @@ protected:
     {
         // store in temp
         uint8_t temp[rotationCount * T_COLOR_FEATURE::PixelSize];
-        uint8_t* pixels = _method.getPixels();
+        uint8_t* pixels = _pixels();
 
         uint8_t* pFront = T_COLOR_FEATURE::getPixelAddress(pixels, last - (rotationCount - 1));
 
@@ -412,7 +469,7 @@ protected:
         uint16_t front = first + shiftCount;
         uint16_t count = last - front + 1;
 
-        uint8_t* pixels = _method.getPixels();
+        uint8_t* pixels = _pixels();
         uint8_t* pFirst = T_COLOR_FEATURE::getPixelAddress(pixels, first);
         uint8_t* pFront = T_COLOR_FEATURE::getPixelAddress(pixels, front);
 

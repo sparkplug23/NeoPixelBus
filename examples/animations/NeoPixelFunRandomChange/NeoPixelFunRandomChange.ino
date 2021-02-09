@@ -27,7 +27,7 @@ struct MyAnimationState
 };
 
 // one entry per pixel to match the animation timing manager
-MyAnimationState animation_colours[PixelCount];
+MyAnimationState animationState[PixelCount];
 
 void SetRandomSeed()
 {
@@ -56,8 +56,8 @@ void BlendAnimUpdate(const AnimationParam& param)
     // we use the blend function on the RgbColor to mix
     // color based on the progress given to us in the animation
     RgbColor updatedColor = RgbColor::LinearBlend(
-        animation_colours[param.index].StartingColor,
-        animation_colours[param.index].EndingColor,
+        animationState[param.index].StartingColor,
+        animationState[param.index].EndingColor,
         param.progress);
     // apply the color to the strip
     strip.SetPixelColor(param.index, updatedColor);
@@ -76,8 +76,8 @@ void PickRandom(float luminance)
         // we use HslColor object as it allows us to easily pick a color
         // with the same saturation and luminance 
         uint16_t time = random(100, 400);
-        animation_colours[pixel].StartingColor = strip.GetPixelColor(pixel);
-        animation_colours[pixel].EndingColor = HslColor(random(360) / 360.0f, 1.0f, luminance);
+        animationState[pixel].StartingColor = strip.GetPixelColor(pixel);
+        animationState[pixel].EndingColor = HslColor(random(360) / 360.0f, 1.0f, luminance);
 
         animations.StartAnimation(pixel, time, BlendAnimUpdate);
 
