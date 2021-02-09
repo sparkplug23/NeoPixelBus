@@ -1,5 +1,9 @@
 # NeoPixelBus
 
+##Edits by me
+
+# Inclusion of Rgbcct
+
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6AA97KE54UJR4)
 
 Arduino NeoPixel library
