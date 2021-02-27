@@ -86,6 +86,17 @@ struct RgbwColor
     RgbwColor(const HsbColor& color);
 
     // ------------------------------------------------------------------------
+    // Construct a RgbwColor using RgbColor
+    // ------------------------------------------------------------------------
+    RgbwColor(const RgbcctColor& color) :
+        R(color.R),
+        G(color.G),
+        B(color.B),
+        W(color.WW)
+    {
+    };
+    
+    // ------------------------------------------------------------------------
     // Construct a RgbwColor that will have its values set in latter operations
     // CAUTION:  The R,G,B, W members are not initialized and may not be consistent
     // ------------------------------------------------------------------------
